@@ -95,6 +95,105 @@ class FusionMapHelper extends Helper {
 		return $out;
 	}
 
+
+
+	/**
+	 * put two points and draw route
+	 * @param unknown_type $map_id
+	 * @param unknown_type $options
+	 */
+	public function double_point_map($map_id='map_layer',$options=array()){
+
+
+		$out='
+		<script type="text/javascript">
+		//<![CDATA[
+
+		var map;
+
+		function init() {
+
+		map = new OpenLayers.Map("'.$map_id.'",{
+		allOverlays: true
+	});
+
+	var osm = new OpenLayers.Layer.OSM();
+	//var gmap = new OpenLayers.Layer.Google("Google Streets", {visibility: false});
+
+	//note that first layer must be visible
+	//map.addLayers([osm, gmap]);
+	map.addLayers([osm]);';
+
+		if(!empty($options['from_point']) && !empty($options['to_point'])):
+				$from_point=$options['from_point'];
+				$to_point=$options['to_point'];
+				$first=$from_point;
+
+				if((intval($first['longitude'])==$first['longitude']) && (intval($first['latitude'])==$first['latitude'])){
+					$zoom=5;
+				}
+				else{
+					$zoom=12;
+				}
+
+
+				$out.='
+				var map_center = new OpenLayers.LonLat(' . $first['longitude']*1.0 . ',' . $first['latitude']*1.0 . ').transform(
+				new OpenLayers.Projection("EPSG:4326"),
+				map.getProjectionObject()
+				);
+				map.setCenter(map_center);
+
+
+				var markers = new OpenLayers.Layer.Markers( "Markers" );
+				map.addLayer(markers);
+				';
+
+			$out.='
+			var from_point = new OpenLayers.LonLat(' . $from_point['longitude']*1.0 . ',' . $from_point['latitude']*1.0 . ').transform(
+			new OpenLayers.Projection("EPSG:4326"),
+			map.getProjectionObject()
+			);
+
+			var size = new OpenLayers.Size(25,35);
+
+			var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
+
+			var icon = new OpenLayers.Icon("'.$this->url(FUSIONMAP_DEFAULT_MARKER).'", size, offset);
+
+			markers.addMarker(new OpenLayers.Marker(from_point,icon));
+
+
+			var to_point = new OpenLayers.LonLat(' . $to_point['longitude']*1.0 . ',' . $to_point['latitude']*1.0 . ').transform(
+			new OpenLayers.Projection("EPSG:4326"),
+			map.getProjectionObject()
+			);
+
+			var size = new OpenLayers.Size(25,35);
+
+			var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
+
+			var icon = new OpenLayers.Icon("'.$this->url(FUSIONMAP_DEFAULT_MARKER).'", size, offset);
+
+			markers.addMarker(new OpenLayers.Marker(to_point,icon));
+			';
+
+
+
+		endif; //empty points
+		$out.='
+		//map.addControl(new OpenLayers.Control.LayerSwitcher());
+		//map.zoomToMaxExtent();
+	}
+	$(window).load(init());
+	//]]>
+	</script>
+	';
+
+
+		return $out;
+	}
+
 	public function center($options=array()){
 			if(!empty($options['long']) && !empty($options['lat']) && !empty($options['count'])){
 				if((intval($options['long'])==$options['long']) && (intval($options['lat'])==$options['lat'])){
