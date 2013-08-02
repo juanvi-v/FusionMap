@@ -98,98 +98,54 @@ class FusionMapHelper extends Helper {
 
 
 	/**
-	 * put two points and draw route
+	 * put two points and draw route using google maps
 	 * @param unknown_type $map_id
 	 * @param unknown_type $options
 	 */
 	public function double_point_map($map_id='map_layer',$options=array()){
 
-
 		$out='
 		<script type="text/javascript">
-		//<![CDATA[
+			//<![CDATA[
 
-		var map;
+				var directionsDisplay;
+				var directionsService = new google.maps.DirectionsService();
+				var map;
 
-		function init() {
 
-		map = new OpenLayers.Map("'.$map_id.'",{
-		allOverlays: true
-	});
+				function initialize() {
+				  directionsDisplay = new google.maps.DirectionsRenderer();
+				  var from_point = new google.maps.LatLng('.$options['from_point']['latitude'].', '.$options['from_point']['longitude'].');
+				  var to_point = new google.maps.LatLng('.$options['to_point']['latitude'].', '.$options['to_point']['longitude'].');
+				  var mapOptions = {
+				    zoom:7,
+				    mapTypeId: google.maps.MapTypeId.ROADMAP,
+				    center: from_point
+				  }
 
-	var osm = new OpenLayers.Layer.OSM();
-	//var gmap = new OpenLayers.Layer.Google("Google Streets", {visibility: false});
 
-	//note that first layer must be visible
-	//map.addLayers([osm, gmap]);
-	map.addLayers([osm]);';
+				  map = new google.maps.Map(document.getElementById(\''.$map_id.'\'), mapOptions);
+				  directionsDisplay.setMap(map);
 
-		if(!empty($options['from_point']) && !empty($options['to_point'])):
-				$from_point=$options['from_point'];
-				$to_point=$options['to_point'];
-				$first=$from_point;
+				  var request = {
+				      origin:from_point,
+				      destination:to_point,
+				      travelMode: google.maps.DirectionsTravelMode.DRIVING
+				  };
+				  directionsService.route(request, function(response, status) {
+				    if (status == google.maps.DirectionsStatus.OK) {
+				      directionsDisplay.setDirections(response);
+				    }
+				  });
 
-				if((intval($first['longitude'])==$first['longitude']) && (intval($first['latitude'])==$first['latitude'])){
-					$zoom=5;
+
 				}
-				else{
-					$zoom=12;
-				}
 
+				google.maps.event.addDomListener(window, \'load\', initialize);
 
-				$out.='
-				var map_center = new OpenLayers.LonLat(' . $first['longitude']*1.0 . ',' . $first['latitude']*1.0 . ').transform(
-				new OpenLayers.Projection("EPSG:4326"),
-				map.getProjectionObject()
-				);
-				map.setCenter(map_center);
-
-
-				var markers = new OpenLayers.Layer.Markers( "Markers" );
-				map.addLayer(markers);
-				';
-
-			$out.='
-			var from_point = new OpenLayers.LonLat(' . $from_point['longitude']*1.0 . ',' . $from_point['latitude']*1.0 . ').transform(
-			new OpenLayers.Projection("EPSG:4326"),
-			map.getProjectionObject()
-			);
-
-			var size = new OpenLayers.Size(25,35);
-
-			var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
-
-			var icon = new OpenLayers.Icon("'.$this->url(FUSIONMAP_DEFAULT_MARKER).'", size, offset);
-
-			markers.addMarker(new OpenLayers.Marker(from_point,icon));
-
-
-			var to_point = new OpenLayers.LonLat(' . $to_point['longitude']*1.0 . ',' . $to_point['latitude']*1.0 . ').transform(
-			new OpenLayers.Projection("EPSG:4326"),
-			map.getProjectionObject()
-			);
-
-			var size = new OpenLayers.Size(25,35);
-
-			var offset = new OpenLayers.Pixel(-(size.w/2), -size.h);
-
-			var icon = new OpenLayers.Icon("'.$this->url(FUSIONMAP_DEFAULT_MARKER).'", size, offset);
-
-			markers.addMarker(new OpenLayers.Marker(to_point,icon));
-			';
-
-
-
-		endif; //empty points
-		$out.='
-		//map.addControl(new OpenLayers.Control.LayerSwitcher());
-		//map.zoomToMaxExtent();
-	}
-	$(window).load(init());
-	//]]>
-	</script>
-	';
-
+			//]]>
+			</script>
+		';
 
 		return $out;
 	}
