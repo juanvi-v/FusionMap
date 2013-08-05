@@ -99,10 +99,24 @@ class FusionMapHelper extends Helper {
 
 	/**
 	 * put two points and draw route using google maps
-	 * @param unknown_type $map_id
-	 * @param unknown_type $options
+	 * uses route, distance and duration calculation too specific to google maps.
+	 * @param string $map_id
+	 * @param array $options
+	 * 		'makers'=>array('image1','image2'), images for custom markers
+	 * 		'line_color'=> color for route
+	 * 		'distance_id' => DOM id for distance field
+	 * 		'duration_id' => DOM id for duration field
+	 * 		'callback'	=>	 callback function name to be called after updating map
 	 */
 	public function double_point_map($map_id='map_layer',$options=array()){
+		$renderer_options=array();
+		if(!empty($options['line_color'])){
+			$renderer_options['polylineOptions']=array('strokeColor'=>$options['line_color']);
+		}
+		if(!empty($options['markers'])){
+			$renderer_options['suppressMarkers']=true;
+		}
+		$renderer_options_json=json_encode($renderer_options);
 
 		$out='
 		<script type="text/javascript">
@@ -114,9 +128,10 @@ class FusionMapHelper extends Helper {
 
 
 				function initialize() {
-				  directionsDisplay = new google.maps.DirectionsRenderer();
+				  directionsDisplay = new google.maps.DirectionsRenderer('.$renderer_options_json.');
 				  var from_point = new google.maps.LatLng('.$options['from_point']['latitude'].', '.$options['from_point']['longitude'].');
 				  var to_point = new google.maps.LatLng('.$options['to_point']['latitude'].', '.$options['to_point']['longitude'].');
+
 				  var mapOptions = {
 				    zoom:7,
 				    mapTypeId: google.maps.MapTypeId.ROADMAP,
@@ -127,14 +142,70 @@ class FusionMapHelper extends Helper {
 				  map = new google.maps.Map(document.getElementById(\''.$map_id.'\'), mapOptions);
 				  directionsDisplay.setMap(map);
 
+				  ';
+
+
+				  if(!empty($options['markers'])){
+				  	$out.='
+				  		icon_from={
+				  			url:\''.$this->url('/img/markers/marker_1.png').'\',
+				  			size: new google.maps.Size(26,32),
+				  			origin: new google.maps.Point(0,0),
+				  			anchor: new google.maps.Point(13,32)
+				  		};
+				  		icon_to={
+				  			url:\''.$this->url('/img/markers/marker_2.png').'\',
+				  			size: new google.maps.Size(26,32),
+				  			origin: new google.maps.Point(0,0),
+				  			anchor: new google.maps.Point(13,32)
+				  		};
+				  		marker_from=new google.maps.Marker({
+				  			position: from_point,
+				  			icon: icon_from,
+				  			map: map
+				  		});
+				  		marker_to=new google.maps.Marker({
+				  			position: to_point,
+				  			icon: icon_to,
+				  			map: map
+				  		});
+				  	';
+				  }
+				  $out.='
+
 				  var request = {
 				      origin:from_point,
 				      destination:to_point,
-				      travelMode: google.maps.DirectionsTravelMode.DRIVING
+				      travelMode: google.maps.DirectionsTravelMode.DRIVING,
+				      unitSystem: google.maps.UnitSystem.METRIC
 				  };
 				  directionsService.route(request, function(response, status) {
 				    if (status == google.maps.DirectionsStatus.OK) {
-				      directionsDisplay.setDirections(response);
+				  ';
+				if(!empty($options['distance_id'])){
+					$out.='
+						  if(response.routes[0].legs[0].distance.value !== undefined){
+						  	document.getElementById(\''.$options['distance_id'].'\').value=response.routes[0].legs[0].distance.value;
+						  }
+					';
+				}
+
+				if(!empty($options['duration_id'])){
+					$out.='
+						if(response.routes[0].legs[0].duration.value !== undefined){
+							document.getElementById(\''.$options['duration_id'].'\').value=response.routes[0].legs[0].duration.value;
+						}
+					';
+				}
+				if(!empty($options['callback'])){
+					$out.='
+						'.$options['callback'].'()
+					';
+
+				}
+
+				$out.='
+					    directionsDisplay.setDirections(response);
 				    }
 				  });
 
